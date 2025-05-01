@@ -2,21 +2,23 @@ from pathlib import Path
 import re
 
 def read_text_file(filepath: Path) -> str:
-    """Reads the content of a text file."""
+    """Reads the content of the input file."""
     return filepath.read_text(encoding='utf-8')
 
 def split_into_sentences(text: str) -> list:
-    """Splits text into sentences using punctuation like . ! ?"""
-    return re.split(r'(?<=[.!?।])\s+', text)
+    """
+    Splits text into sentences while preserving all original punctuation.
+    """
+    # Matches sentence-ending punctuation (., ?, !) followed by space or end of line
+    pattern = re.compile(r'(.*?[.!?।]["\']?(?:\s+|$))', re.DOTALL)
+    return [match.group(1) for match in pattern.finditer(text)]
 
 def write_each_sentence_to_file(sentences: list, output_dir: Path):
-    """Writes each sentence to a separate file with zero-padded filenames."""
+    """Writes each sentence into a separate file."""
     output_dir.mkdir(exist_ok=True)
-    
     for idx, sentence in enumerate(sentences):
         filename = f"{str(idx + 1).zfill(5)}.txt"
-        file_path = output_dir / filename
-        file_path.write_text(sentence, encoding='utf-8')
+        (output_dir / filename).write_text(sentence, encoding='utf-8')
 
 def main():
     input_file = Path(r"story\Flames CH 01.txt")

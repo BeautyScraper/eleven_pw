@@ -1,3 +1,4 @@
+import random
 import shutil
 from playwright.sync_api import Playwright, sync_playwright, expect
 from pathlib import Path
@@ -27,10 +28,36 @@ def mainparse(urlt : str, context, content,filepath) -> None:
     download = download_info.value
     download.save_as(filepath)
     page.wait_for_timeout(10000)
-    
+    page.close()
+
+def get_working_proxy(playwright,proxies):
+        while True:
+            selected_proxy = random.choice(proxies)
+            print(f"Testing proxy: {selected_proxy}")
+            try:
+                test_browser = playwright.firefox.launch(headless=True, proxy={"server": selected_proxy})
+                test_context = test_browser.new_context()
+                test_page = test_context.new_page()
+                test_page.goto("https://httpbin.org/ip", timeout=10000)
+                print("Proxy is working:", test_page.content())
+                test_browser.close()
+                return selected_proxy
+            except Exception as e:
+                print(f"Proxy {selected_proxy} failed: {e}")
+                print("Trying a new proxy...")
 
 def run(playwright: Playwright) -> None:
-    browser = playwright.firefox.launch(headless=False)
+    # Load proxies from a file
+    proxies_file = Path("proxies")
+    with proxies_file.open("r", encoding="utf-8") as f:
+        proxies = [line.strip() for line in f if line.strip()]
+    
+    # Select a random proxy
+    selected_proxy = random.choice(proxies)
+    print(f"Using proxy: {selected_proxy}")
+    # Test if the proxy is working
+    
+    browser = playwright.firefox.launch(headless=False, proxy={"server": get_working_proxy(playwright,proxies)})
     # user_data_dir = Path(rf'{profile_dir}\{userid}')
     
 
@@ -41,11 +68,18 @@ def run(playwright: Playwright) -> None:
         if subdir.is_dir():
             frags = [file for file in subdir.iterdir() if file.suffix.lower() in ['.txt']]
             # video = next((file for file in subdir.iterdir() if file.suffix.lower() in ['.mp4', '.avi', '.mkv', '.gif']), None)
-            for texts in frags:
+            for i,texts in enumerate(frags):
+                output_file = Path(str(download_dir /subdir.name/ texts.stem)+'.mp3')
+                if output_file.is_file():
+                    continue
+                if (i+1)%5 == 0:
+                    browser.close()
+                    browser = browser = playwright.firefox.launch(headless=False, proxy={"server": get_working_proxy(proxies)})
                 with texts.open('r', encoding='utf-8') as f:
                     content = f.read()
-                    print(content)  # You can process the content as needed
-                mainparse(url, browser, content,str(download_dir /subdir.name/ texts.stem)+'.mp3')
+                    print(content)
+                    # You can process the content as needed
+                mainparse(url, browser, content,str(output_file))
 
     
 
