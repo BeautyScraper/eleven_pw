@@ -13,6 +13,7 @@ userid = r'sstico0'
 to_download = False
 dirpath = Path(r'story_fragments')
 download_dir = Path(r'downloads')
+use_proxies = False
 
 def mainparse(urlt : str, context, content,filepath) -> None:
     page = context.new_page()
@@ -49,37 +50,46 @@ def get_working_proxy(playwright,proxies):
 def run(playwright: Playwright) -> None:
     # Load proxies from a file
     proxies_file = Path("proxies")
-    with proxies_file.open("r", encoding="utf-8") as f:
-        proxies = [line.strip() for line in f if line.strip()]
+    proxies = []
+    if proxies_file.exists():
+        with proxies_file.open("r", encoding="utf-8") as f:
+            proxies = [line.strip() for line in f if line.strip()]
     
-    # Select a random proxy
-    selected_proxy = random.choice(proxies)
-    print(f"Using proxy: {selected_proxy}")
-    # Test if the proxy is working
+    browser = None
+    if use_proxies and proxies:
+        proxy_server = get_working_proxy(playwright, proxies)
+        browser = playwright.firefox.launch(headless=False, proxy={"server": proxy_server})
+    else:
+        browser = playwright.chromium.launch(headless=True, ignore_default_args=["--mute-audio"])
     
-    browser = playwright.firefox.launch(headless=False, proxy={"server": get_working_proxy(playwright,proxies)})
-    # user_data_dir = Path(rf'{profile_dir}\{userid}')
-    
-
     url = "https://elevenlabs.io/hi"
 
-    # browser = playwright.firefox.launch_persistent_context(user_data_dir,headless= not to_download)
     for subdir in dirpath.iterdir():
         if subdir.is_dir():
             frags = [file for file in subdir.iterdir() if file.suffix.lower() in ['.txt']]
-            # video = next((file for file in subdir.iterdir() if file.suffix.lower() in ['.mp4', '.avi', '.mkv', '.gif']), None)
-            for i,texts in enumerate(frags):
-                output_file = Path(str(download_dir /subdir.name/ texts.stem)+'.mp3')
+            for i, texts in enumerate(frags):
+                output_file = Path(str(download_dir / subdir.name / texts.stem) + '.mp3')
                 if output_file.is_file():
                     continue
-                if (i+1)%5 == 0:
+                if use_proxies and proxies and (i + 1) % 5 == 0:
                     browser.close()
-                    browser = browser = playwright.firefox.launch(headless=False, proxy={"server": get_working_proxy(proxies)})
+                    proxy_server = get_working_proxy(playwright, proxies) if use_proxies else None
+                    browser = playwright.firefox.launch(
+                        headless=False, 
+                        proxy={"server": proxy_server} if proxy_server else None,
+                        ignore_default_args=["--mute-audio"]
+                    )
                 with texts.open('r', encoding='utf-8') as f:
                     content = f.read()
                     print(content)
-                    # You can process the content as needed
-                mainparse(url, browser, content,str(output_file))
+                try:
+                    mainparse(url, browser, content, str(output_file))
+                except Exception as e:
+                    print(f"Error processing {texts}: {e}")
+                    if not use_proxies:
+                        browser.close()
+                        break
+                        
 
     
 
