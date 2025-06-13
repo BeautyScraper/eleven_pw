@@ -23,13 +23,19 @@ def mainparse(urlt : str, context, content,filepath) -> None:
     sleep(3)
     page.get_by_role("radio", name="Lily कथा-वाचन").click()
     sleep(1)
+    ttsbox = page.get_by_placeholder("ElevenLabs वॉइस जनरेटर 32 भाषाओं में हाई क्वालिटी वाली, इंसान जैसी आवाज़ प्रदान कर सकता है। ऑडियोबुक्स, वीडियो वॉइसओवर्स, विज्ञापनों और अन्य के लिए उपयुक्त")
+    ttsbox.fill(content)
+    # tts_content = ttsbox.input_value()
     # breakpoint()
-    page.get_by_placeholder("ElevenLabs वॉइस जनरेटर 32 भाषाओं में हाई क्वालिटी वाली, इंसान जैसी आवाज़ प्रदान कर सकता है। ऑडियोबुक्स, वीडियो वॉइसओवर्स, विज्ञापनों और अन्य के लिए उपयुक्त").click()
-    sleep(1)
-    page.get_by_placeholder("ElevenLabs वॉइस जनरेटर 32 भाषाओं में हाई क्वालिटी वाली, इंसान जैसी आवाज़ प्रदान कर सकता है। ऑडियोबुक्स, वीडियो वॉइसओवर्स, विज्ञापनों और अन्य के लिए उपयुक्त").press("Control+a")
-    sleep(1)
-    page.get_by_placeholder("ElevenLabs वॉइस जनरेटर 32 भाषाओं में हाई क्वालिटी वाली, इंसान जैसी आवाज़ प्रदान कर सकता है। ऑडियोबुक्स, वीडियो वॉइसओवर्स, विज्ञापनों और अन्य के लिए उपयुक्त").fill(content)
-    sleep(1)
+    while(ttsbox.input_value() != content):
+        sleep(1)
+    # print(f"TTS Box Content: {tts_content}")
+    # breakpoint()
+    # ttsbox.click()
+    # sleep(1)
+    # ttsbox.press("Control+a")
+    # sleep(1)
+    # sleep(1)
     page.locator("[id^=\"radix-\"][id$=\"-content-tts\"]").get_by_role("button", name="Play").click()
     sleep(1)
     with page.expect_download() as download_info:
@@ -76,6 +82,7 @@ def run(playwright: Playwright) -> None:
         if subdir.is_dir():
             frags = [file for file in subdir.iterdir() if file.suffix.lower() in ['.txt']]
             for i, texts in enumerate(frags):
+                print(i)
                 output_file = Path(str(download_dir / subdir.name / texts.stem) + '.mp3')
                 if output_file.is_file():
                     continue

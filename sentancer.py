@@ -23,14 +23,19 @@ def write_grouped_sentences_to_file(sentences: list, output_dir: Path, max_chars
         sentence = sentence.strip()
         # If a single sentence is longer than max_chars, write it alone
         if len(sentence) > max_chars:
+            breakpoint()
             if buffer:
                 filename = f"{str(file_idx).zfill(5)}.txt"
                 (output_dir / filename).write_text(buffer.strip(), encoding='utf-8')
                 file_idx += 1
                 buffer = ""
-            filename = f"{str(file_idx).zfill(5)}.txt"
-            (output_dir / filename).write_text(sentence, encoding='utf-8')
-            file_idx += 1
+            sub_sentences = re.split(r'[-;,।।]|(?:\b(?:और|lekin)\b)', sentence)
+            for sub_sentence in sub_sentences:
+                sub_sentence = sub_sentence.strip()
+                if sub_sentence:
+                    filename = f"{str(file_idx).zfill(5)}.txt"
+                    (output_dir / filename).write_text(sub_sentence, encoding='utf-8')
+                    file_idx += 1
         elif len(buffer) + len(sentence) <= max_chars:
             buffer += sentence + " "
         else:
